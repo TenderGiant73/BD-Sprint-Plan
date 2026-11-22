@@ -39,6 +39,7 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body)}
 .wrap{max-width:1280px;margin:0 auto;padding:28px 20px 60px;display:flex;flex-direction:column;gap:24px}
@@ -712,6 +713,7 @@ function setStatus(){
     readonly:['live','Версия плана от __PLAN_DATE__ · только просмотр. Изменения вносит Дима'],snapshot:['err','Снимок плана от 16.11.2026: общий план недоступен, правки сохраняются только в этой вкладке']};
   const [c,t]=map[S.mode]; el.className='status '+c; el.querySelector('span').textContent=t;
   document.getElementById('copySite').hidden = S.mode!=='live';
+  document.getElementById('addTask').hidden = !editable(); document.getElementById('addMs').hidden = !editable();
   
 }
 function loadSnapshot(){
