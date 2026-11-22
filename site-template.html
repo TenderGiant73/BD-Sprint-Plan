@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>План главы 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: editable production board. Summary strip, swimlane Gantt by person (drag to move, drag edges to resize), editor panel below, then milestones / risks / prologue tails. */
+:root{
+  --bg:#f3f1ec; --surface:#fbfaf7; --ink:#1d1b19; --muted:#6b655d; --line:#dcd6cc;
+  --accent:#9a2b23; --brass:#a47a2c; --ok:#1f7a74;
+  --t-mitya:#6b4fa0; --t-dima:#1f7a74; --t-prog:#9a2b23; --t-artA:#b07a12; --t-artB:#5f7a2a; --t-mkt:#2f5f9a; --t-timur:#b0466f; --t-mav:#7a5a34; --t-valera:#3d7f4f;
+  --holiday:rgba(47,95,154,.08); --absent:rgba(154,43,35,.18); --buffer:rgba(164,122,44,.10);
+  --bar-ink:#ffffff; --field:#ffffff;
+  --display:"Oswald","Arial Narrow",Arial,sans-serif;
+  --body:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#151413; --surface:#1e1c1a; --ink:#ece8e1; --muted:#a39c92; --line:#34312d;
+    --accent:#e0675b; --brass:#d3a650; --ok:#3fb0a6;
+    --t-mitya:#9a80d0; --t-dima:#3fb0a6; --t-prog:#d4554a; --t-artA:#d39b33; --t-artB:#8eac4f; --t-mkt:#5f8fd0; --t-timur:#de7aa0; --t-mav:#c79b62; --t-valera:#6cc283;
+    --holiday:rgba(95,143,208,.12); --absent:rgba(224,103,91,.22); --buffer:rgba(211,166,80,.12);
+    --bar-ink:#121110; --field:#161514;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#151413; --surface:#1e1c1a; --ink:#ece8e1; --muted:#a39c92; --line:#34312d;
+  --accent:#e0675b; --brass:#d3a650; --ok:#3fb0a6;
+  --t-mitya:#9a80d0; --t-dima:#3fb0a6; --t-prog:#d4554a; --t-artA:#d39b33; --t-artB:#8eac4f; --t-mkt:#5f8fd0; --t-timur:#de7aa0; --t-mav:#c79b62; --t-valera:#6cc283;
+  --holiday:rgba(95,143,208,.12); --absent:rgba(224,103,91,.22); --buffer:rgba(211,166,80,.12);
+  --bar-ink:#121110; --field:#161514;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body)}
+.wrap{max-width:1280px;margin:0 auto;padding:28px 20px 60px;display:flex;flex-direction:column;gap:24px}
+h1,h2,h3{font-family:var(--display);font-weight:600;letter-spacing:.01em;text-wrap:balance;margin:0}
+h1{font-size:34px;line-height:1.1;text-transform:uppercase}
+h2{font-size:20px;text-transform:uppercase;letter-spacing:.04em}
+h3{font-size:16px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.kicker{font-family:var(--mono);font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+header{display:flex;flex-direction:column;gap:6px}
+.status{display:inline-flex;align-items:center;gap:8px;font-size:13px;padding:6px 12px;border-radius:4px;border:1px solid var(--line);background:var(--surface);align-self:flex-start}
+.status i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.status.live i{background:var(--ok)}
+.status.warn i{background:var(--brass)}
+.status.err i{background:var(--accent)}
+
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.tile .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.tile .val{font-family:var(--display);font-size:26px;line-height:1.15}
+.tile .sub{font-size:13px;color:var(--muted)}
+.tile.bad{border-left:4px solid var(--accent)}
+.tile.ok{border-left:4px solid var(--ok)}
+.tile.warn{border-left:4px solid var(--brass)}
+
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip,.btn{font:500 13px var(--body);border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer;display:inline-flex;gap:7px;align-items:center}
+.btn{border-radius:4px}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.danger{color:var(--accent);border-color:var(--accent)}
+.btn:disabled{opacity:.4;cursor:default}
+.chip .dot{width:10px;height:10px;border-radius:50%}
+.chip[aria-pressed="false"]{opacity:.45}
+.chip.crit[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.chip:focus-visible,.btn:focus-visible,.bar:focus-visible,.ms:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sep{width:1px;height:22px;background:var(--line);margin:0 4px}
+.hint{font-size:12.5px;color:var(--muted)}
+
+.gantt-card{background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.gantt-scroll{overflow-x:auto}
+.gantt{position:relative;--label:150px;user-select:none;-webkit-user-select:none}
+.grow{display:flex;border-bottom:1px solid var(--line);position:relative}
+.grow:last-child{border-bottom:0}
+.glabel{flex:0 0 var(--label);width:var(--label);padding:8px 12px;font-weight:600;font-size:13px;position:sticky;left:0;background:var(--surface);z-index:5;border-right:1px solid var(--line);display:flex;flex-direction:column;justify-content:center;line-height:1.25}
+.glabel small{font-weight:400;color:var(--muted);font-size:11.5px}
+.sw{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;vertical-align:1px}
+.gtrack{position:relative;flex:0 0 auto}
+.sprint{position:absolute;top:0;height:24px;border-right:1px solid var(--line);font:600 12px var(--display);letter-spacing:.05em;display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden}
+.sprint.alt{background:color-mix(in srgb,var(--line) 35%,transparent)}
+.week{position:absolute;top:24px;height:22px;font:11px var(--mono);color:var(--muted);padding-left:3px;border-left:1px solid var(--line);white-space:nowrap}
+.bg-band{position:absolute;top:0;bottom:0;pointer-events:none;z-index:0}
+.bg-holiday{background:var(--holiday)}
+.bg-buffer{background:var(--buffer)}
+.vline{position:absolute;top:0;bottom:0;border-left:1px dashed var(--line);pointer-events:none;z-index:0}
+.today{position:absolute;top:0;bottom:0;width:2px;background:var(--accent);z-index:4;pointer-events:none}
+.today span{position:absolute;top:50px;left:4px;font:600 10.5px var(--mono);color:var(--accent);background:var(--surface);padding:0 3px;white-space:nowrap}
+.bar{position:absolute;height:28px;border-radius:4px;color:var(--bar-ink);font:500 12px/28px var(--body);padding:0 9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:2;cursor:grab;touch-action:none}
+.edit-off .bar{cursor:pointer}
+.bar.light{background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.28) 0 6px,transparent 6px 12px)}
+.bar.absent{background:repeating-linear-gradient(135deg,var(--absent) 0 7px,transparent 7px 14px)!important;color:var(--accent);outline:1px dashed var(--accent);outline-offset:-1px;font-weight:600}
+.bar.crit{box-shadow:inset 0 -4px 0 rgba(0,0,0,.35)}
+.bar .tri{font-size:9px;vertical-align:1px;margin-right:3px}
+.bar.dim{opacity:.18}
+.bar.sel{outline:2px solid var(--ink);outline-offset:1px;z-index:3}
+.bar.dragging{opacity:.85;cursor:grabbing;z-index:6}
+.bar .h{position:absolute;top:0;bottom:0;width:8px;cursor:ew-resize}
+.bar .h.l{left:0}.bar .h.r{right:0}
+.bar:hover .h,.bar.sel .h{background:rgba(255,255,255,.35)}
+.edit-off .bar .h{display:none}
+.ms{position:absolute;top:8px;width:18px;height:18px;transform:translateX(-9px);cursor:grab;z-index:2;background:none;border:0;padding:0;touch-action:none}
+.edit-off .ms{cursor:pointer}
+.ms i{display:block;width:13px;height:13px;margin:2px auto;transform:rotate(45deg);background:var(--brass);border:2px solid var(--surface);pointer-events:none}
+.ms.final i{background:var(--accent)}
+.ms.sel i{outline:2px solid var(--ink)}
+.ms b{position:absolute;top:20px;left:50%;transform:translateX(-50%);font:600 10.5px var(--mono);white-space:nowrap;color:var(--muted);pointer-events:none}
+.zoombar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:13px}
+.zoombar input[type=range]{width:220px;max-width:50vw;accent-color:var(--brass)}
+.zoombar .zv{font:500 12px var(--mono);color:var(--muted);min-width:70px}
+.zbtn{font:600 15px/1 var(--body);width:28px;height:28px;border-radius:4px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.zbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.addrow{margin-top:4px;align-self:flex-start;font:500 11.5px var(--body);border:1px dashed var(--line);background:none;color:var(--muted);border-radius:3px;padding:1px 6px;cursor:pointer}
+.addrow:hover{color:var(--ink);border-color:var(--ink)}
+.edit-off .addrow{display:none}
+.day{position:absolute;top:24px;height:22px;font:10px var(--mono);color:var(--muted);text-align:center;border-left:1px solid color-mix(in srgb,var(--line) 60%,transparent)}
+.day.we{background:color-mix(in srgb,var(--line) 30%,transparent)}
+.btn.add{background:var(--brass);border-color:var(--brass);color:#fff;font-weight:600}
+.glabel.clickable{cursor:pointer}
+.glabel.clickable:hover{background:color-mix(in srgb,var(--line) 40%,var(--surface))}
+.glabel.on{box-shadow:inset 3px 0 0 var(--brass)}
+.tl{width:100%;border-collapse:collapse;font-size:13.5px}
+.tl th{font:600 11.5px var(--body);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tl td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.tl td.num,.tl th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tl td.dt{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--muted)}
+.tl tr.task{cursor:pointer}
+.tl tr.task:hover td{background:color-mix(in srgb,var(--line) 30%,transparent)}
+.tl tr.gap td{color:var(--muted);font-style:italic;background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--line) 35%,transparent) 0 6px,transparent 6px 12px)}
+.tl tr.ovl td{color:var(--accent);font-size:12.5px}
+.tl .nm{display:flex;align-items:center;gap:6px}
+.tl-wrap{overflow-x:auto}
+.stats{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:13px}
+.stats b{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.drag-tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--bg);font:500 12px var(--mono);padding:4px 8px;border-radius:4px;display:none}
+.legend{display:flex;flex-wrap:wrap;gap:14px;padding:10px 14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.lg{width:22px;height:12px;border-radius:2px;display:inline-block}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:6px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.panel p{margin:0;max-width:75ch}
+.row{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;align-items:center}
+.tag{font:500 11.5px var(--mono);padding:2px 7px;border-radius:3px;border:1px solid var(--line);color:var(--muted)}
+.tag.crit{color:var(--accent);border-color:var(--accent)}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px 14px}
+.form .wide{grid-column:1/-1}
+.field{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.field input,.field select,.field textarea{font:14px var(--body);color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:4px;padding:7px 9px;width:100%}
+.field textarea{min-height:84px;resize:vertical;line-height:1.45}
+.checks{display:flex;flex-wrap:wrap;gap:14px;font-size:13.5px;color:var(--ink)}
+.checks label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.saved{font-size:12.5px;color:var(--muted)}
+.spr-chips{display:flex;gap:6px;flex-wrap:wrap}
+.spr-chips span{font:600 11.5px var(--mono);padding:2px 7px;border-radius:3px;background:color-mix(in srgb,var(--brass) 18%,transparent);color:var(--ink)}
+
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px}
+section{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px 16px}
+ol.ms-list,ul.plain{margin:0;padding:0;list-style:none;display:flex;flex-direction:column}
+.ms-list li{display:grid;grid-template-columns:62px 48px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px;align-items:baseline}
+.ms-list li:last-child{border-bottom:0}
+.ms-list .when{font-family:var(--mono);color:var(--muted);font-size:12.5px}
+.ms-list .id{font:600 13px var(--display);color:var(--brass)}
+.ms-list li.final .id{color:var(--accent)}
+.ms-list li.past{opacity:.55}
+.risk{display:grid;grid-template-columns:6px 1fr;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.risk:last-child{border-bottom:0}
+.risk .sev{border-radius:3px}
+.risk h3{font-family:var(--body);font-size:14px;font-weight:600}
+.risk p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.prio{display:flex;flex-direction:column;gap:10px}
+.prio .grp h3{font-family:var(--body);font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.prio .ids{display:flex;flex-wrap:wrap;gap:6px}
+.prio .ids span{font-size:12.5px;padding:3px 8px;border-radius:3px;background:color-mix(in srgb,var(--line) 45%,transparent)}
+.check li{display:flex;gap:10px;padding:6px 0;font-size:14px;border-bottom:1px solid var(--line)}
+.check li:last-child{border-bottom:0}
+.check .n{font:600 14px var(--display);color:var(--brass);min-width:40px}
+.note{font-size:12.5px;color:var(--muted)}
+@media (max-width:640px){ h1{font-size:26px} .gantt{--label:104px} .glabel{padding:8px;font-size:12px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">Bullet's Deal · производственный план · спринт стартовал 16.11.2026</div>
+    <h1>План главы 1</h1>
+    <p class="muted" style="margin:0;max-width:80ch">Спринты по 2 недели, команда part-time (10–15 ч/нед). Тяни блок, чтобы сдвинуть его, тяни за край, чтобы изменить длительность. Клик открывает редактор: спринт, даты, описание. ▲ — критический путь.</p>
+    <div class="status" id="status"><i></i><span>Подключаюсь к общему плану…</span></div>
+  </header>
+
+  <div class="summary" id="summary"></div>
+
+  <div class="controls" role="toolbar" aria-label="Фильтры и действия">
+    <span id="chips" style="display:contents"></span>
+    <span class="sep" aria-hidden="true"></span>
+    <button class="chip crit" id="critOnly" aria-pressed="false" type="button">▲ Только критический путь</button>
+    <span class="sep" aria-hidden="true"></span>
+    <button class="btn add" id="addTask" type="button">+ Новый блок</button>
+    <button class="btn" id="addMs" type="button">+ Майлстоун</button>
+    <button class="btn" id="copySite" type="button" hidden>Скопировать для сайта</button>
+  </div>
+
+  <div class="gantt-card">
+    <div class="zoombar">
+      <label for="zoom">Масштаб</label>
+      <button class="zbtn" type="button" id="zOut" aria-label="Отдалить">−</button>
+      <input type="range" id="zoom" min="4" max="120" step="1" value="10">
+      <button class="zbtn" type="button" id="zIn" aria-label="Приблизить">+</button>
+      <span class="zv" id="zv"></span>
+      <button class="btn" type="button" id="zFit">Весь план</button>
+      <button class="btn" type="button" id="zSel">К выбранному блоку</button>
+      <span class="hint">Двойной клик по пустому месту дорожки добавляет блок на эту дату.</span>
+    </div>
+    <div class="gantt-scroll"><div class="gantt" id="gantt"></div></div>
+    <div class="legend">
+      <span><i class="lg" style="background:var(--t-dima)"></i>задача</span>
+      <span><i class="lg" style="background:var(--t-dima);background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.35) 0 4px,transparent 4px 8px)"></i>вполсилы</span>
+      <span><i class="lg" style="background:repeating-linear-gradient(135deg,var(--absent) 0 4px,transparent 4px 8px);outline:1px dashed var(--accent)"></i>недоступен</span>
+      <span><i class="lg" style="background:var(--holiday);border:1px solid var(--line)"></i>праздники</span>
+      <span><i class="lg" style="background:var(--buffer);border:1px solid var(--line)"></i>буфер</span>
+      <span><i class="lg" style="background:var(--brass);width:11px;height:11px;transform:rotate(45deg)"></i>майлстоун</span>
+      <span><i class="lg" style="background:var(--accent);width:2px"></i>сегодня</span>
+    </div>
+  </div>
+
+  <div class="panel" id="panel" aria-live="polite"></div>
+
+  <div class="cols">
+    <section>
+      <h2>Майлстоуны</h2>
+      <div class="card"><ol class="ms-list" id="msList"></ol></div>
+    </section>
+    <section>
+      <h2>Неделя вижна · 16–21.11</h2>
+      <div class="card"><ul class="plain check">
+        <li><span class="n">Пн–Вт</span><span>Митя: сюжетные повороты и персонажи. Дима: механика (3–5 правил), роли противников, функция каждой локации</span></li>
+        <li><span class="n">Ср</span><span>Синк Дима + Митя, сводим всё в один документ</span></li>
+        <li><span class="n">Чт</span><span>Ревью с командой: программисты оценивают фичу, художники проверяют локации и врагов</span></li>
+        <li><span class="n">Пт</span><span>Правки и лок вижна (M0)</span></li>
+        <li><span class="n">Сб</span><span>Хендофф на 22–27.11: Митя отвечает по нарративу, Кисель по технике</span></li>
+      </ul></div>
+    </section>
+  </div>
+
+  <div class="cols">
+    <section>
+      <h2>Риски</h2>
+      <div class="card" id="risks"></div>
+    </section>
+    <section>
+      <h2>Хвосты пролога</h2>
+      <div class="card prio" id="prio"></div>
+      <p class="note">Идут параллельно с главой и забирают ~20% времени каждого. У Мити их ~7, на время сценария они заморожены.</p>
+    </section>
+  </div>
+</div>
+<div class="drag-tip" id="tip"></div>
+
+<script>
+(function(){
+"use strict";
+/* Snapshot used only when the shared plan cannot be reached (e.g. the HTML file opened on its own). */
+const SNAPSHOT = /*SNAPSHOT*/null;
+
+const DAY = 864e5;
+const P = s => { const [y,m,d] = s.split('-').map(Number); return Date.UTC(y,m-1,d); };
+const ISO = t => new Date(t).toISOString().slice(0,10);
+const F = t => { const d=new Date(t); return String(d.getUTCDate()).padStart(2,'0')+'.'+String(d.getUTCMonth()+1).padStart(2,'0'); };
+const FY = t => F(t)+'.'+new Date(t).getUTCFullYear();
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const todayUTC = (()=>{ const n=new Date(); return Date.UTC(n.getFullYear(),n.getMonth(),n.getDate()); })();
+
+const TRACKS = [
+  {id:'mitya', name:'Митя',         sub:'нарратив',                color:'var(--t-mitya)'},
+  {id:'dima',  name:'Дима',         sub:'ГД + тех. ГД',            color:'var(--t-dima)'},
+  {id:'valera',name:'Валера',       sub:'ГД',                      color:'var(--t-valera)'},
+  {id:'prog',  name:'Программисты', sub:'Аркадий, Матвей, Кисель', color:'var(--t-prog)'},
+  {id:'artA',  name:'Аня',          sub:'художник · локации',                 color:'var(--t-artA)'},
+  {id:'artB',  name:'Карина',       sub:'художник · персонажи, UI, лок. 4',     color:'var(--t-artB)'},
+  {id:'mkt',   name:'Маркетинг',    sub:'Влада, Саша',             color:'var(--t-mkt)'},
+  {id:'timur', name:'Тимур',        sub:'маркетинг · рилсы',       color:'var(--t-timur)'},
+  {id:'mav',   name:'Мав',          sub:'маркетинг, разработка, ГД', color:'var(--t-mav)'},
+];
+const trackOf = id => TRACKS.find(t=>t.id===id) || TRACKS[1];
+
+const RISKS = [
+  {sev:'var(--accent)', h:'Вижн не залочен к 20.11', p:'Команда неделю работает вслепую, пока Дима недоступен. Всё, что не решено к пятнице, ждёт до 28.11.'},
+  {sev:'var(--accent)', h:'Новые фичи сложнее, чем 3–4 нед.', p:'Критический путь. Основные правила в вижне, грейбокс до спеки, режем фичу при отставании.'},
+  {sev:'var(--accent)', h:'Дима недоступен 14–23.12, пока программисты делают фичи', p:'Хендофф до 13.12, Кисель принимает мелкие решения. Сборку компенсировать в праздники.'},
+  {sev:'var(--brass)', h:'Сценарий Мити опаздывает из-за пролога', p:'Заморозить его пролог на время сценария, синки Митя ↔ Дима 2 раза в неделю.'},
+  {sev:'var(--brass)', h:'Оценки сделаны для фуллтайма', p:'В конце S1 сверить план и факт. Отставание больше 30% → режем скоуп.'},
+];
+const PRIO = [
+  {h:'P0 · закрыть в S1', c:'var(--accent)', ids:['NEY-43 тиканье','NEY-55 меню настроек','NEY-11/12 урон','NEY-8 муз. плеер','NEY-4 Save & Load','NEY-57 подъезд','NEY-39/40 интерфейсы, экран конца демо']},
+  {h:'P1 · по ходу', c:'var(--brass)', ids:['NEY-23 интерфейс диалогов (к 05.12!)','NEY-21 гильза','NEY-14 постпроцессы','NEY-20 шрифт','NEY-37 катсцена','NEY-42 экран смерти']},
+  {h:'Перенести в главу', c:'var(--ok)', ids:['NEY-15 кнопка пощады','NEY-56 система эффектов','NEY-29 энкаунтер с часами']},
+  {h:'Холд до после главы', c:'var(--muted)', ids:['NEY-2 режим исследования','NEY-9','NEY-10','NEY-22','NEY-26/27','NEY-28 Reddit','NEY-3 карта мира']},
+];
+
+/* ---------- state ---------- */
+const S = {
+  tasks:new Map(), ms:new Map(), config:null,
+  hidden:new Set(), critOnly:false, sel:null, // sel = {kind:'task'|'ms', id}
+  mode:'loading', // live | snapshot | readonly | loading
+  db:null, deleteArm:false, zoom:null,
+};
+let PX = 10, START = 0, END = 0, DAYS = 0;
+
+function range(){
+  const sp = (S.config && S.config.sprints) || [];
+  let a = sp.length ? P(sp[0][1]) : todayUTC, b = sp.length ? P(sp[sp.length-1][2]) : todayUTC+90*DAY;
+  for(const t of S.tasks.values()){ a=Math.min(a,P(t.start)); b=Math.max(b,P(t.end)); }
+  for(const m of S.ms.values()){ a=Math.min(a,P(m.date)); b=Math.max(b,P(m.date)); }
+  // align start to Monday
+  const dow = (new Date(a).getUTCDay()+6)%7; a -= dow*DAY;
+  START=a; END=b+DAY; DAYS=Math.round((END-START)/DAY);
+}
+const X = t => Math.round((t-START)/DAY*PX);
+const W = (s,e) => Math.max(PX, Math.round(((e-s)/DAY+1)*PX));
+const sprintsOf = (s,e) => ((S.config&&S.config.sprints)||[]).filter(([,a,b])=>P(a)<=e && s<=P(b)).map(x=>x[0]);
+const editable = () => S.mode==='live' || S.mode==='snapshot';
+
+/* ---------- persistence ---------- */
+const queues = {};
+function persist(kind, id, data, del){
+  if(S.mode==='snapshot'){ saved('Сохранено только в этой вкладке'); return Promise.resolve(); }
+  if(S.mode!=='live' || !S.db) return Promise.resolve();
+  const path = (kind==='task'?'tasks/':'milestones/')+id;
+  const run = ()=> (del ? S.db.doc(path).delete() : S.db.doc(path).set(data))
+    .then(()=>saved('Сохранено · видно всем'))
+    .catch(e=>{
+      if(e && e.code==='invalid_argument'){ S.mode='readonly'; setStatus(); render(); saved('Нет прав на изменение'); }
+      else if(e && e.code==='quota_exceeded'){ saved('Хранилище заполнено, блок не сохранён'); }
+      else saved('Не удалось сохранить, попробуй ещё раз');
+    });
+  queues[path] = (queues[path]||Promise.resolve()).then(run, run);
+  return queues[path];
+}
+function saved(msg){ const el=document.getElementById('savedMsg'); if(el) el.textContent=msg; }
+function clean(o){ const r={}; for(const k in o) if(k!=='id') r[k]=o[k]; return r; }
+
+/* ---------- gantt render ---------- */
+const g = document.getElementById('gantt');
+function render(){
+  if(S.zoom==null) S.zoom = window.innerWidth < 640 ? 8 : 10;
+  PX = S.zoom;
+  range();
+  const Wd = DAYS*PX;
+  g.classList.toggle('edit-off', !editable());
+  g.innerHTML = '';
+  // header
+  const hdr = row('hdr','',''); hdr.t.style.width=Wd+'px'; hdr.t.style.height='46px';
+  ((S.config&&S.config.sprints)||[]).forEach(([n,a,b],i)=>{
+    const el=div('sprint'+(i%2?' alt':''), esc(n)); el.style.left=X(P(a))+'px'; el.style.width=W(P(a),P(b))+'px'; hdr.t.appendChild(el);
+  });
+  if(PX>=22){ for(let t=START;t<END;t+=DAY){ const dw=new Date(t).getUTCDay(); const el=div('day'+(dw===0||dw===6?' we':''), PX>=34?F(t):String(new Date(t).getUTCDate())); el.style.left=X(t)+'px'; el.style.width=PX+'px'; hdr.t.appendChild(el); } }
+  else for(let t=START;t<END;t+=7*DAY){ const el=div('week mono',F(t)); el.style.left=X(t)+'px'; hdr.t.appendChild(el); }
+  // milestones row
+  const mr = row('','Майлстоуны',''); mr.t.style.width=Wd+'px'; mr.t.style.height='44px'; bands(mr.t);
+  [...S.ms.values()].sort((a,b)=>a.date<b.date?-1:1).forEach(m=>{
+    const b=document.createElement('button'); b.type='button';
+    b.className='ms'+(m.final?' final':'')+(S.sel&&S.sel.kind==='ms'&&S.sel.id===m.id?' sel':'');
+    b.style.left=(X(P(m.date))+PX/2)+'px';
+    b.innerHTML='<i></i><b>'+esc(m.label||m.id)+'</b>';
+    b.title=(m.label||m.id)+' · '+F(P(m.date))+' · '+(m.name||'');
+    b.setAttribute('aria-label',b.title);
+    b.dataset.id=m.id; b.addEventListener('pointerdown',e=>startDrag(e,'ms',m.id,'move'));
+    b.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); select('ms',m.id);} });
+    mr.t.appendChild(b);
+  });
+  // tracks
+  TRACKS.forEach(tr=>{
+    if(S.hidden.has(tr.id)) return;
+    const list=[...S.tasks.values()].filter(t=>t.track===tr.id).sort((a,b)=>a.start<b.start?-1:a.start>b.start?1:0);
+    // greedy lanes
+    const laneEnd=[]; const lane=new Map();
+    list.forEach(t=>{ let i=laneEnd.findIndex(e=>e<P(t.start)); if(i<0){i=laneEnd.length;laneEnd.push(0);} laneEnd[i]=P(t.end); lane.set(t.id,i); });
+    const lanes=Math.max(1,laneEnd.length);
+    const r=row('', '<span class="sw" style="background:'+tr.color+'"></span>'+tr.name, tr.sub);
+    r.t.style.width=Wd+'px'; r.t.style.height=(lanes*34+10)+'px'; r.t.dataset.track=tr.id; bands(r.t);
+    const ab=document.createElement('button'); ab.type='button'; ab.className='addrow'; ab.textContent='+ блок'; ab.setAttribute('aria-label','Добавить блок: '+tr.name);
+    ab.onclick=ev=>{ ev.stopPropagation(); addTask(tr.id,null); }; const gl=r.r.querySelector('.glabel'); gl.appendChild(ab);
+    gl.classList.add('clickable'); if(S.sel&&S.sel.kind==='track'&&S.sel.id===tr.id) gl.classList.add('on');
+    gl.tabIndex=0; gl.setAttribute('role','button'); gl.setAttribute('aria-label','Список задач: '+tr.name); gl.title='Показать список задач';
+    gl.onclick=ev=>{ if(ev.target.closest('.addrow')) return; S.sel={kind:'track',id:tr.id}; render(); showTrack(tr.id); panel.scrollIntoView({behavior:'smooth',block:'nearest'}); };
+    gl.onkeydown=ev=>{ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); gl.onclick(ev); } };
+    r.t.addEventListener('dblclick',ev=>{ if(ev.target!==r.t && !ev.target.classList.contains('bg-band') && !ev.target.classList.contains('vline')) return;
+      const rect=r.t.getBoundingClientRect(); const d=START+Math.floor((ev.clientX-rect.left)/PX)*DAY; addTask(tr.id,ISO(d)); });
+    list.forEach(t=>{
+      const s=P(t.start), e=P(t.end);
+      const b=document.createElement('div');
+      b.tabIndex=0; b.setAttribute('role','button');
+      b.className='bar'+(t.light?' light':'')+(t.absent?' absent':'')+(t.crit?' crit':'')+(S.critOnly&&!t.crit?' dim':'')+(S.sel&&S.sel.kind==='task'&&S.sel.id===t.id?' sel':'');
+      b.style.left=X(s)+'px'; b.style.width=W(s,e)+'px'; b.style.top=(6+lane.get(t.id)*34)+'px';
+      if(!t.absent) b.style.backgroundColor=tr.color;
+      b.innerHTML=(t.crit?'<span class="tri">▲</span>':'')+esc((t.n?t.n+' · ':'')+t.name)+'<span class="h l"></span><span class="h r"></span>';
+      b.title=t.name+' · '+F(s)+'–'+F(e)+' · '+sprintsOf(s,e).join(', ');
+      b.setAttribute('aria-label',b.title);
+      b.dataset.id=t.id;
+      b.addEventListener('pointerdown',ev=>{
+        const mode = ev.target.classList.contains('l')?'left':ev.target.classList.contains('r')?'right':'move';
+        startDrag(ev,'task',t.id,mode);
+      });
+      b.addEventListener('keydown',ev=>{ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); select('task',t.id);} });
+      r.t.appendChild(b);
+    });
+  });
+  if(todayUTC>=START && todayUTC<END){
+    const lbl=parseFloat(getComputedStyle(g).getPropertyValue('--label'))||150;
+    const tl=div('today'); tl.style.left=(lbl+X(todayUTC)+PX/2)+'px'; tl.innerHTML='<span>сегодня '+F(todayUTC)+'</span>'; g.appendChild(tl);
+  }
+  renderSummary(); renderMsList();
+}
+function bands(track){
+  const c=S.config||{};
+  (c.holidays||[]).forEach(([a,b])=>{ const el=div('bg-band bg-holiday'); el.style.left=X(P(a))+'px'; el.style.width=W(P(a),P(b))+'px'; track.appendChild(el); });
+  if(c.buffer){ const el=div('bg-band bg-buffer'); el.style.left=X(P(c.buffer[0]))+'px'; el.style.width=W(P(c.buffer[0]),P(c.buffer[1]))+'px'; track.appendChild(el); }
+  (c.sprints||[]).forEach(([,a])=>{ const v=div('vline'); v.style.left=X(P(a))+'px'; track.appendChild(v); });
+}
+function row(cls,label,sub){
+  const r=div('grow '+cls); const l=div('glabel','<div>'+label+'</div>'+(sub?'<small>'+esc(sub)+'</small>':'')); const t=div('gtrack');
+  r.append(l,t); g.appendChild(r); return {r,t};
+}
+function div(cls,html){ const d=document.createElement('div'); d.className=cls; if(html!=null) d.innerHTML=html; return d; }
+
+/* ---------- drag ---------- */
+const tip=document.getElementById('tip');
+function startDrag(ev,kind,id,mode){
+  if(ev.button!==0) return;
+  const el=ev.currentTarget;
+  const item = kind==='task'?S.tasks.get(id):S.ms.get(id); if(!item) return;
+  const x0=ev.clientX; let moved=false, dd=0;
+  const s0 = kind==='task'?P(item.start):P(item.date), e0 = kind==='task'?P(item.end):s0;
+  const left0=parseFloat(el.style.left), w0=parseFloat(el.style.width||0);
+  if(editable()) el.setPointerCapture(ev.pointerId);
+  const onMove=e=>{
+    if(!editable()) return;
+    const dx=e.clientX-x0; if(!moved && Math.abs(dx)<4) return;
+    moved=true; el.classList.add('dragging');
+    dd=Math.round(dx/PX);
+    let s=s0,en=e0;
+    if(kind==='ms'||mode==='move'){ s=s0+dd*DAY; en=e0+dd*DAY; el.style.left=(left0+dd*PX)+'px'; }
+    else if(mode==='left'){ dd=Math.min(dd,Math.round((e0-s0)/DAY)); s=s0+dd*DAY; el.style.left=(left0+dd*PX)+'px'; el.style.width=(w0-dd*PX)+'px'; }
+    else { dd=Math.max(dd,-Math.round((e0-s0)/DAY)); en=e0+dd*DAY; el.style.width=(w0+dd*PX)+'px'; }
+    tip.style.display='block'; tip.style.left=(e.clientX+12)+'px'; tip.style.top=(e.clientY+14)+'px';
+    tip.textContent = kind==='ms' ? F(s) : F(s)+' – '+F(en)+' · '+(Math.round((en-s)/DAY)+1)+' дн. · '+(sprintsOf(s,en).join(', ')||'вне спринтов');
+  };
+  const onUp=()=>{
+    el.removeEventListener('pointermove',onMove); el.removeEventListener('pointerup',onUp); el.removeEventListener('pointercancel',onUp);
+    tip.style.display='none';
+    if(!moved || dd===0){ el.classList.remove('dragging'); select(kind,id); return; }
+    if(kind==='ms'){ const m={...item,date:ISO(s0+dd*DAY)}; S.ms.set(id,m); persist('ms',id,clean(m)); }
+    else{
+      const t={...item};
+      if(mode==='move'){ t.start=ISO(s0+dd*DAY); t.end=ISO(e0+dd*DAY); }
+      else if(mode==='left'){ t.start=ISO(s0+dd*DAY); } else { t.end=ISO(e0+dd*DAY); }
+      S.tasks.set(id,t); persist('task',id,clean(t));
+    }
+    S.sel={kind,id}; render(); showPanel();
+  };
+  el.addEventListener('pointermove',onMove); el.addEventListener('pointerup',onUp); el.addEventListener('pointercancel',onUp);
+}
+
+/* ---------- panel / editor ---------- */
+const panel=document.getElementById('panel');
+function select(kind,id){ S.sel={kind,id}; S.deleteArm=false; render(); showPanel(); }
+function showPanel(){
+  if(!S.sel){ return showNow(); }
+  if(S.sel.kind==='track') return showTrack(S.sel.id);
+  if(S.sel.kind==='task'){ const t=S.tasks.get(S.sel.id); if(!t){S.sel=null;return showNow();} return editable()?taskForm(t):taskView(t); }
+  const m=S.ms.get(S.sel.id); if(!m){S.sel=null;return showNow();} return editable()?msForm(m):msView(m);
+}
+function taskView(t){
+  const tr=trackOf(t.track), s=P(t.start), e=P(t.end);
+  panel.style.borderLeftColor = t.absent?'var(--accent)':tr.color;
+  panel.innerHTML='<div class="row"><span class="kicker">'+tr.name+' · '+tr.sub+'</span>'+(t.n?'<span class="tag">п.'+esc(t.n)+' из списка</span>':'')+(t.crit?'<span class="tag crit">▲ критический путь</span>':'')+'</div>'+
+    '<h3 style="font-size:20px">'+esc(t.name)+'</h3>'+
+    '<div class="row mono muted">'+FY(s)+' – '+FY(e)+' · '+(Math.round((e-s)/DAY)+1)+' дн.</div>'+
+    '<div class="spr-chips">'+sprintsOf(s,e).map(x=>'<span>'+esc(x)+'</span>').join('')+'</div>'+
+    (t.desc?'<p>'+esc(t.desc)+'</p>':'')+
+    '<div class="row">'+(t.deps?'<span><b>Ждёт:</b> '+esc(t.deps)+'</span>':'')+(t.unblocks?'<span><b>Разблокирует:</b> '+esc(t.unblocks)+'</span>':'')+'</div>'+closeBtn();
+  bindClose();
+}
+function msView(m){
+  panel.style.borderLeftColor=m.final?'var(--accent)':'var(--brass)';
+  panel.innerHTML='<div class="row"><span class="kicker">Майлстоун '+esc(m.label||m.id)+'</span></div><h3 style="font-size:20px">'+esc(m.name)+'</h3><div class="row mono muted">'+FY(P(m.date))+'</div>'+closeBtn();
+  bindClose();
+}
+function closeBtn(){ return '<div class="actions"><button class="btn" type="button" id="pClose">Закрыть</button></div>'; }
+function bindClose(){ const b=document.getElementById('pClose'); if(b) b.onclick=()=>{ S.sel=null; render(); showNow(); }; }
+
+function taskForm(t){
+  const tr=trackOf(t.track), s=P(t.start), e=P(t.end), days=Math.round((e-s)/DAY)+1;
+  const cur=sprintsOf(s,e);
+  panel.style.borderLeftColor = t.absent?'var(--accent)':tr.color;
+  const sp=(S.config&&S.config.sprints)||[];
+  panel.innerHTML=
+   '<div class="row"><span class="kicker">Редактирование блока</span><span class="spr-chips" id="fSpr">'+cur.map(x=>'<span>'+esc(x)+'</span>').join('')+'</span></div>'+
+   '<form class="form" id="tForm" autocomplete="off">'+
+    '<label class="field wide">Название<input id="fName" value="'+esc(t.name)+'" required></label>'+
+    '<label class="field">Кто<select id="fTrack">'+TRACKS.map(x=>'<option value="'+x.id+'"'+(x.id===t.track?' selected':'')+'>'+x.name+'</option>').join('')+'</select></label>'+
+    '<label class="field">Спринт (поставить в начало)<select id="fSprint"><option value="">— '+(cur.join(', ')||'вне спринтов')+' —</option>'+sp.map(([n,a,b])=>'<option value="'+esc(n)+'">'+esc(n)+' · '+F(P(a))+'–'+F(P(b))+'</option>').join('')+'</select></label>'+
+    '<label class="field">Начало<input type="date" id="fStart" value="'+t.start+'"></label>'+
+    '<label class="field">Длительность, дней<input type="number" id="fDays" min="1" max="200" value="'+days+'"></label>'+
+    '<label class="field">Конец<input type="date" id="fEnd" value="'+t.end+'"></label>'+
+    '<label class="field">№ из списка задач<input id="fN" value="'+esc(t.n)+'" placeholder="например, 3"></label>'+
+    '<label class="field wide">Описание<textarea id="fDesc" placeholder="Что входит, критерии готовности, ссылки">'+esc(t.desc)+'</textarea></label>'+
+    '<label class="field">Ждёт<input id="fDeps" value="'+esc(t.deps)+'" placeholder="От чего зависит"></label>'+
+    '<label class="field">Разблокирует<input id="fUnb" value="'+esc(t.unblocks)+'" placeholder="Что после него можно начинать"></label>'+
+    '<div class="checks wide"><label><input type="checkbox" id="fCrit"'+(t.crit?' checked':'')+'> Критический путь</label><label><input type="checkbox" id="fLight"'+(t.light?' checked':'')+'> Вполсилы</label><label><input type="checkbox" id="fAbsent"'+(t.absent?' checked':'')+'> Недоступен</label></div>'+
+    '<div class="actions wide"><button class="btn primary" type="submit">Сохранить</button><button class="btn" type="button" id="fFill">Растянуть на весь спринт</button><button class="btn danger" type="button" id="fDel">Удалить</button><button class="btn" type="button" id="pClose">Закрыть</button><span class="saved" id="savedMsg">'+(S.mode==='snapshot'?'Правки сохраняются только в этой вкладке':'')+'</span></div>'+
+   '</form>';
+  const $=id=>document.getElementById(id);
+  const sync=src=>{
+    let st=$('fStart').value, en=$('fEnd').value, d=parseInt($('fDays').value,10)||1;
+    if(!st) return;
+    if(src==='days'||src==='start') en=ISO(P(st)+(d-1)*DAY);
+    if(src==='end'){ if(!en||en<st) en=st; d=Math.round((P(en)-P(st))/DAY)+1; $('fDays').value=d; }
+    $('fEnd').value=en;
+    $('fSpr').innerHTML=sprintsOf(P(st),P(en)).map(x=>'<span>'+esc(x)+'</span>').join('');
+  };
+  $('fStart').onchange=()=>sync('start'); $('fDays').oninput=()=>sync('days'); $('fEnd').onchange=()=>sync('end');
+  $('fSprint').onchange=()=>{ const sv=sp.find(x=>x[0]===$('fSprint').value); if(!sv) return; $('fStart').value=sv[1]; sync('start'); };
+  $('fFill').onclick=()=>{
+    const name=$('fSprint').value || sprintsOf(P($('fStart').value),P($('fStart').value))[0];
+    const sv=sp.find(x=>x[0]===name); if(!sv){ saved('Выбери спринт'); return; }
+    $('fStart').value=sv[1]; $('fEnd').value=sv[2]; sync('end');
+  };
+  $('fDel').onclick=()=>{
+    if(!S.deleteArm){ S.deleteArm=true; $('fDel').textContent='Точно удалить?'; return; }
+    S.tasks.delete(t.id); persist('task',t.id,null,true); S.sel=null; S.deleteArm=false; render(); showNow();
+  };
+  bindClose();
+  $('tForm').onsubmit=ev=>{
+    ev.preventDefault();
+    const st=$('fStart').value, en=$('fEnd').value;
+    if(!st||!en||en<st){ saved('Проверь даты: конец раньше начала'); return; }
+    const nt={...t, name:$('fName').value.trim()||'Без названия', track:$('fTrack').value, start:st, end:en, n:$('fN').value.trim(),
+      desc:$('fDesc').value.trim(), deps:$('fDeps').value.trim(), unblocks:$('fUnb').value.trim(),
+      crit:$('fCrit').checked, light:$('fLight').checked, absent:$('fAbsent').checked};
+    S.tasks.set(t.id,nt); persist('task',t.id,clean(nt)); render(); taskForm(nt); saved(S.mode==='live'?'Сохраняю…':'Сохранено только в этой вкладке');
+  };
+}
+function msForm(m){
+  panel.style.borderLeftColor=m.final?'var(--accent)':'var(--brass)';
+  panel.innerHTML='<div class="row"><span class="kicker">Майлстоун</span></div>'+
+   '<form class="form" id="mForm" autocomplete="off">'+
+    '<label class="field">Метка<input id="mLabel" value="'+esc(m.label||m.id)+'"></label>'+
+    '<label class="field">Дата<input type="date" id="mDate" value="'+m.date+'"></label>'+
+    '<label class="field wide">Что должно быть готово<input id="mName" value="'+esc(m.name)+'"></label>'+
+    '<div class="checks wide"><label><input type="checkbox" id="mFinal"'+(m.final?' checked':'')+'> Финальный (дата готовности главы)</label></div>'+
+    '<div class="actions wide"><button class="btn primary" type="submit">Сохранить</button><button class="btn danger" type="button" id="mDel">Удалить</button><button class="btn" type="button" id="pClose">Закрыть</button><span class="saved" id="savedMsg"></span></div>'+
+   '</form>';
+  const $=id=>document.getElementById(id);
+  $('mDel').onclick=()=>{ if(!S.deleteArm){S.deleteArm=true;$('mDel').textContent='Точно удалить?';return;} S.ms.delete(m.id); persist('ms',m.id,null,true); S.sel=null; S.deleteArm=false; render(); showNow(); };
+  bindClose();
+  $('mForm').onsubmit=ev=>{ ev.preventDefault(); if(!$('mDate').value) return;
+    const nm={...m,label:$('mLabel').value.trim()||m.id,date:$('mDate').value,name:$('mName').value.trim(),final:$('mFinal').checked};
+    S.ms.set(m.id,nm); persist('ms',m.id,clean(nm)); render(); msForm(nm); saved(S.mode==='live'?'Сохраняю…':'Сохранено только в этой вкладке'); };
+}
+function showTrack(id){
+  const tr=trackOf(id);
+  const list=[...S.tasks.values()].filter(t=>t.track===id).sort((a,b)=>a.start<b.start?-1:a.start>b.start?1:(a.end<b.end?-1:1));
+  const dur=t=>Math.round((P(t.end)-P(t.start))/DAY)+1;
+  let rows='', busyEnd=null, work=0, off=0, gaps=0;
+  list.forEach((t,i)=>{
+    if(busyEnd!=null){
+      const g0=busyEnd+DAY, g1=P(t.start)-DAY;
+      if(g1>=g0){ const gd=Math.round((g1-g0)/DAY)+1; gaps+=gd;
+        rows+='<tr class="gap"><td>Свободно</td><td class="dt">'+F(g0)+' – '+F(g1)+'</td><td class="num">'+gd+'</td><td>'+esc(sprintsOf(g0,g1).join(', '))+'</td></tr>'; }
+      else if(P(t.start)<=busyEnd){ rows+='<tr class="ovl"><td colspan="4">↕ пересекается с предыдущим блоком на '+(Math.round((Math.min(busyEnd,P(t.end))-P(t.start))/DAY)+1)+' дн.</td></tr>'; }
+    }
+    const d=dur(t); if(t.absent) off+=d; else work+=d;
+    rows+='<tr class="task" data-id="'+t.id+'"><td><div class="nm"><span class="sw" style="background:'+(t.absent?'var(--accent)':tr.color)+'"></span>'+(t.crit?'▲ ':'')+esc((t.n?t.n+' · ':'')+t.name)+(t.absent?' <span class="tag">недоступен</span>':'')+(t.light?' <span class="tag">вполсилы</span>':'')+'</div>'+(t.desc?'<div class="muted" style="font-size:12.5px;margin-top:2px">'+esc(t.desc)+'</div>':'')+'</td>'+
+      '<td class="dt">'+F(P(t.start))+' – '+F(P(t.end))+'</td><td class="num">'+d+'</td><td>'+esc(sprintsOf(P(t.start),P(t.end)).join(', '))+'</td></tr>';
+    busyEnd = busyEnd==null?P(t.end):Math.max(busyEnd,P(t.end));
+  });
+  const first=list.length?P(list[0].start):null;
+  panel.style.borderLeftColor=tr.color;
+  panel.innerHTML='<div class="row"><span class="kicker">Все блоки дорожки</span></div>'+
+    '<h3 style="font-size:20px"><span class="sw" style="background:'+tr.color+';width:12px;height:12px"></span>'+tr.name+' <span class="muted" style="font:400 14px var(--body)">· '+esc(tr.sub)+'</span></h3>'+
+    (list.length? '<div class="stats"><span>Блоков: <b>'+list.length+'</b></span><span>С '+F(first)+' по '+F(busyEnd)+'</span><span>В работе: <b>'+work+'</b> дн.</span><span>Недоступен: <b>'+off+'</b> дн.</span><span>Свободно между блоками: <b>'+gaps+'</b> дн.</span></div>'+
+      '<div class="tl-wrap"><table class="tl"><thead><tr><th>Блок</th><th>Даты</th><th class="num">Дней</th><th>Спринты</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+      : '<p class="muted">В этой дорожке пока нет блоков.</p>')+
+    '<div class="actions">'+(editable()?'<button class="btn add" type="button" id="tlAdd">+ Блок в эту дорожку</button>':'')+'<button class="btn" type="button" id="pClose">Закрыть</button></div>';
+  panel.querySelectorAll('tr.task').forEach(r=>r.onclick=()=>{ select('task',r.dataset.id); centerOn(P(S.tasks.get(r.dataset.id).start)); });
+  const a=document.getElementById('tlAdd'); if(a) a.onclick=()=>addTask(id,null);
+  bindClose();
+}
+function showNow(){
+  const cur=[...S.tasks.values()].filter(t=>P(t.start)<=todayUTC && todayUTC<=P(t.end));
+  const sp=sprintsOf(todayUTC,todayUTC)[0];
+  panel.style.borderLeftColor='var(--brass)';
+  panel.innerHTML='<div class="row"><span class="kicker">Сейчас'+(sp?' · '+esc(sp):'')+' · '+F(todayUTC)+'</span></div>'+
+   '<h3 style="font-size:20px">'+(cur.length?'В работе':'Сейчас ничего не запланировано')+'</h3>'+
+   '<div class="row">'+cur.map(t=>'<span><span class="sw" style="background:'+(t.absent?'var(--accent)':trackOf(t.track).color)+'"></span><b>'+trackOf(t.track).name+':</b> '+esc(t.name)+'</span>').join('')+'</div>'+
+   '<p class="muted" style="font-size:13px">Клик по имени слева показывает список всех блоков дорожки. '+(editable()?'Нажми на блок, чтобы изменить спринт, даты и описание. Тяни блок или его край прямо на таймлайне.':'Нажми на блок или ромб, чтобы увидеть детали.')+'</p>';
+}
+
+/* ---------- summary & lists ---------- */
+function renderSummary(){
+  const fin=[...S.ms.values()].find(m=>m.final);
+  const crit=[...S.tasks.values()].filter(t=>t.crit);
+  const critEnd=crit.reduce((a,t)=>Math.max(a,P(t.end)),0);
+  const ny=Date.UTC(2027,0,1);
+  const rem={}; crit.forEach(t=>{ const d=(P(t.end)-Math.max(P(t.start),todayUTC))/DAY; if(d>0) rem[t.track]=(rem[t.track]||0)+d; }); const critTracks=Object.keys(rem).sort((a,b)=>rem[b]-rem[a]).map(k=>trackOf(k).name);
+  const nxt=[...S.ms.values()].filter(m=>P(m.date)>=todayUTC).sort((a,b)=>a.date<b.date?-1:1)[0];
+  const dLeft=nxt?Math.round((P(nxt.date)-todayUTC)/DAY):0;
+  document.getElementById('summary').innerHTML=
+   '<div class="tile ok"><span class="label">Глава готова</span><span class="val mono">'+(fin?'~'+FY(P(fin.date)):'—')+'</span><span class="sub">'+(fin?esc(fin.label||fin.id)+': '+esc(fin.name):'Отметь финальный майлстоун')+'</span></div>'+
+   (nxt?'<div class="tile warn"><span class="label">Ближайший майлстоун · '+esc(nxt.label||nxt.id)+'</span><span class="val mono">'+FY(P(nxt.date))+'</span><span class="sub">'+esc(nxt.name)+' · '+(dLeft===0?'сегодня':'через '+dLeft+' дн.')+'</span></div>':'<div class="tile ok"><span class="label">Ближайший майлстоун</span><span class="val">Все пройдены</span><span class="sub">Добавь новый через «+ Майлстоун»</span></div>')+
+   '<div class="tile warn"><span class="label">Критический путь</span><span class="val">'+(critTracks.slice(0,1).join(', ')||'—')+'</span><span class="sub">'+(critEnd?'заканчивается '+F(critEnd)+(fin&&critEnd>P(fin.date)?' · позже финального майлстоуна!':''):'')+'</span></div>';
+}
+function renderMsList(){
+  document.getElementById('msList').innerHTML=[...S.ms.values()].sort((a,b)=>a.date<b.date?-1:1).map(m=>
+   '<li class="'+(m.final?'final ':'')+(P(m.date)<todayUTC?'past':'')+'"><span class="when">'+F(P(m.date))+'</span><span class="id">'+esc(m.label||m.id)+'</span><span>'+esc(m.name)+'</span></li>').join('') || '<li><span></span><span></span><span class="muted">Майлстоунов нет</span></li>';
+}
+document.getElementById('risks').innerHTML=RISKS.map(r=>'<div class="risk"><span class="sev" style="background:'+r.sev+'"></span><div><h3>'+r.h+'</h3><p>'+r.p+'</p></div></div>').join('');
+document.getElementById('prio').innerHTML=PRIO.map(p=>'<div class="grp"><h3 style="color:'+p.c+'">'+p.h+'</h3><div class="ids">'+p.ids.map(i=>'<span>'+i+'</span>').join('')+'</div></div>').join('');
+
+/* ---------- toolbar ---------- */
+const chips=document.getElementById('chips');
+TRACKS.forEach(tr=>{
+  const b=document.createElement('button'); b.className='chip'; b.type='button'; b.setAttribute('aria-pressed','true');
+  b.innerHTML='<span class="dot" style="background:'+tr.color+'"></span>'+tr.name;
+  b.onclick=()=>{ const on=b.getAttribute('aria-pressed')==='true'; b.setAttribute('aria-pressed',String(!on)); on?S.hidden.add(tr.id):S.hidden.delete(tr.id); render(); };
+  chips.appendChild(b);
+});
+const co=document.getElementById('critOnly');
+co.onclick=()=>{ S.critOnly=!S.critOnly; co.setAttribute('aria-pressed',String(S.critOnly)); render(); };
+const newId=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+function addTask(track,start){
+  if(!editable()){ notEditable(); return; }
+  let st=start;
+  if(!st){ const sp=((S.config&&S.config.sprints)||[]).find(([,a,b])=>P(a)<=todayUTC&&todayUTC<=P(b)); st=sp?sp[1]:ISO(todayUTC); }
+  const t={id:newId('t'),track:track,start:st,end:ISO(P(st)+6*DAY),name:'Новый блок',n:'',desc:'',deps:'',unblocks:'',crit:false,light:false,absent:false};
+  S.tasks.set(t.id,t); persist('task',t.id,clean(t)); select('task',t.id); centerOn(P(t.start));
+  const f=document.getElementById('fName'); if(f){ f.focus(); f.select(); }
+}
+function notEditable(){
+  panel.style.borderLeftColor='var(--accent)';
+  panel.innerHTML='<h3 style="font-size:18px">Сейчас план нельзя менять</h3><p class="muted">'+(S.mode==='loading'?'Страница ещё подключается к общему плану, подожди пару секунд.':'У тебя доступ только на просмотр. Владелец может дать уровень Contributor или Editor в меню «Поделиться».')+'</p>';
+}
+document.getElementById('addTask').onclick=()=>{
+  const tr=(S.sel&&S.sel.kind==='task'&&S.tasks.get(S.sel.id))?S.tasks.get(S.sel.id).track:'dima';
+  addTask(tr,null);
+};
+document.getElementById('addMs').onclick=()=>{
+  if(!editable()){ notEditable(); return; }
+  const m={id:newId('m'),label:'M?',date:ISO(todayUTC+7*DAY),name:'Новый майлстоун',final:false};
+  S.ms.set(m.id,m); persist('ms',m.id,clean(m)); select('ms',m.id);
+};
+
+/* ---------- copy for site ---------- */
+document.getElementById('copySite').onclick=()=>{
+  const data={exportedAt:ISO(todayUTC),config:S.config,
+    tasks:[...S.tasks.values()].map(t=>({...t})), milestones:[...S.ms.values()].map(m=>({...m}))};
+  const txt=JSON.stringify(data);
+  const done=()=>{ panel.style.borderLeftColor='var(--ok)'; panel.innerHTML='<h3 style="font-size:18px">План скопирован</h3><p class="muted">Теперь запусти <b>update-site.command</b> в папке репозитория BD: Sprint Plan. Он соберёт сайт и запушит его.</p>'; };
+  const manual=()=>{ panel.style.borderLeftColor='var(--brass)'; panel.innerHTML='<h3 style="font-size:18px">Скопируй вручную</h3><p class="muted">Браузер не дал скопировать автоматически. Выдели всё в поле (Cmd+A) и скопируй (Cmd+C), потом запусти update-site.command.</p><textarea id="copyBox" style="width:100%;min-height:120px;font:12px var(--mono)" readonly></textarea>'; const b=document.getElementById('copyBox'); b.value=txt; b.focus(); b.select(); };
+  try{ navigator.clipboard.writeText(txt).then(done,manual); }catch(e){ manual(); }
+};
+
+/* ---------- zoom ---------- */
+const scroller=document.querySelector('.gantt-scroll');
+const zEl=document.getElementById('zoom'), zv=document.getElementById('zv');
+const labelW=()=>parseFloat(getComputedStyle(g).getPropertyValue('--label'))||150;
+function centerOn(t){ scroller.scrollLeft=Math.max(0, labelW()+X(t)-scroller.clientWidth/2); }
+function setZoom(z,anchor){
+  z=Math.max(4,Math.min(120,Math.round(z)));
+  const visW=scroller.clientWidth-labelW();
+  const mid = anchor!=null ? anchor : START+((scroller.scrollLeft+labelW()+visW/2-labelW())/PX)*DAY;
+  S.zoom=z; zEl.value=z; zv.textContent=z+' px/день';
+  try{ localStorage.setItem('bdZoom',String(z)); }catch(e){}
+  render(); centerOn(mid);
+}
+function selCenter(){
+  if(!S.sel) return null;
+  if(S.sel.kind==='task'){ const t=S.tasks.get(S.sel.id); return t?(P(t.start)+P(t.end))/2:null; }
+  const m=S.ms.get(S.sel.id); return m?P(m.date):null;
+}
+zEl.addEventListener('input',()=>setZoom(+zEl.value, selCenter()));
+document.getElementById('zIn').onclick=()=>setZoom(S.zoom*1.4, selCenter());
+document.getElementById('zOut').onclick=()=>setZoom(S.zoom/1.4, selCenter());
+document.getElementById('zFit').onclick=()=>{ const w=scroller.clientWidth-labelW()-8; setZoom(Math.max(4,Math.floor(w/Math.max(1,DAYS)))); scroller.scrollLeft=0; };
+document.getElementById('zSel').onclick=()=>{
+  const c=selCenter(); if(c==null){ panel.style.borderLeftColor='var(--brass)'; panel.innerHTML='<p class="muted">Сначала выбери блок кликом.</p>'; return; }
+  if(S.sel.kind==='task'){ const t=S.tasks.get(S.sel.id); const days=(P(t.end)-P(t.start))/DAY+1; const w=scroller.clientWidth-labelW();
+    setZoom(Math.max(S.zoom, Math.min(120, Math.max(28, Math.floor(w*0.45/days)))), c); }
+  else setZoom(Math.max(S.zoom,30), c);
+};
+scroller.addEventListener('wheel',e=>{ if(!(e.ctrlKey||e.metaKey)) return; e.preventDefault();
+  const rect=scroller.getBoundingClientRect(); const at=START+((scroller.scrollLeft+e.clientX-rect.left-labelW())/PX)*DAY;
+  setZoom(S.zoom*(e.deltaY<0?1.15:1/1.15), at); },{passive:false});
+
+/* ---------- status ---------- */
+function setStatus(){
+  const el=document.getElementById('status');
+  const map={loading:['','Подключаюсь к общему плану…'],live:['live','Общий план: правки сохраняются и видны всем, у кого есть доступ'],
+    readonly:['live','Версия плана от __PLAN_DATE__ · только просмотр. Изменения вносит Дима'],snapshot:['err','Снимок плана от 16.11.2026: общий план недоступен, правки сохраняются только в этой вкладке']};
+  const [c,t]=map[S.mode]; el.className='status '+c; el.querySelector('span').textContent=t;
+  document.getElementById('copySite').hidden = S.mode!=='live';
+  
+}
+function loadSnapshot(){
+  if(S.mode==='live') return;
+  S.mode='readonly';
+  if(SNAPSHOT){ S.config=SNAPSHOT.config; S.tasks=new Map(SNAPSHOT.tasks.map(t=>[t.id,t])); S.ms=new Map(SNAPSHOT.milestones.map(m=>[m.id,m])); }
+  setStatus(); render(); showPanel();
+}
+
+/* ---------- boot ---------- */
+try{ const z=parseInt(localStorage.getItem('bdZoom'),10); if(z>=4&&z<=120) S.zoom=z; }catch(e){}
+setStatus(); render(); showNow(); zEl.value=S.zoom; zv.textContent=S.zoom+' px/день';
+if(todayUTC>START) centerOn(todayUTC+14*DAY);
+let loadTimer=setTimeout(()=>{ if(S.mode==='loading') loadSnapshot(); },10000);
+const hasClaude = typeof window.claude==='object' && window.claude && typeof window.claude.use==='function';
+if(!hasClaude){ clearTimeout(loadTimer); loadSnapshot(); }
+else window.claude.use('db').then(db=>{
+  if(!db){ clearTimeout(loadTimer); loadSnapshot(); return; }
+  S.db=db;
+  let got={cfg:false,t:false,m:false};
+  const ready=()=>{ if(got.cfg&&got.t&&got.m){ clearTimeout(loadTimer); if(S.mode!=='readonly') S.mode='live'; setStatus(); render(); if(!document.querySelector('#panel form')) showPanel(); } };
+  const fail=e=>{ if(e&&e.code==='revoked'){ S.mode='readonly'; setStatus(); render(); } };
+  db.doc('config/main').onSnapshot(s=>{ S.config=s.exists?s.data():S.config; got.cfg=true; ready(); },fail);
+  db.collection('tasks').onSnapshot(q=>{
+    const keep=S.tasks; S.tasks=new Map(q.docs.map(d=>[d.id,{...d.data(),id:d.id}]));
+    if(!q.metadata.fromCache || q.size){ got.t=true; }
+    if(got.t&&keep!==S.tasks) ready();
+  },fail);
+  db.collection('milestones').onSnapshot(q=>{ S.ms=new Map(q.docs.map(d=>[d.id,{...d.data(),id:d.id}])); got.m=true; ready(); },fail);
+}).catch(()=>{ clearTimeout(loadTimer); loadSnapshot(); });
+
+let rt; window.addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(render,120); });
+})();
+</script>
+</body>
+</html>
